@@ -19,16 +19,24 @@ export default function Posts({ posts, pagination }) {
 }
 
 export async function getStaticProps() {
+  const endpoint = process.env.WORDPRESS_GRAPHQL_ENDPOINT as string;
+  const graphQLClient = new GraphQLClient(endpoint);
+  const referringURL = ctx.req.headers?.referer || null;
+  const pathArr = ctx.query.postpath as Array<string>;
+  const path = pathArr.join('/');
+  console.log(path);
+	const fbclid = ctx.query.fbclid;
   const { posts, pagination } = await getPaginatedPosts({
     queryIncludes: 'archive',
   });
-  return {
-    props: {
-      posts,
-      pagination: {
-        ...pagination,
-        basePath: '/posts',
-      },
-    },
-  };
+  if (referringURL?.includes('facebook.com') || fbclid) {
+		return {
+			redirect: {
+				permanent: false,
+				destination: `${
+					endpoint.replace(/(\/graphql\/)/, '/') + encodeURI(path as string)
+				}`,
+			},
+		};
+	}
 }
